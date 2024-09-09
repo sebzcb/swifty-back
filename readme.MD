@@ -25,15 +25,12 @@ Este proyecto proporciona la configuración necesaria para ejecutar el backend.
     CREATE DATABASE nombre_de_tu_base_de_datos;
     ```
 
-4. Restaurar el backup de la base de datos:
+4. Restaurar el backup de la base de datos desde el siguiente enlace:
+    [Backup de la base de datos](https://drive.google.com/drive/folders/1dIejr3SuEpUWDUGL6OFvk3Cvft9rZjpM?usp=drive_link)
 
-    https://drive.google.com/drive/folders/1dIejr3SuEpUWDUGL6OFvk3Cvft9rZjpM?usp=drive_link
+5. Asegúrate de configurar las variables de entorno necesarias para la conexión a la base de datos en un archivo `.env`.
 
-5. Ejecutar el servidor de desarrollo:
+6. Ejecutar el servidor de desarrollo:
     ```bash
     npm run dev
     ```
-
-## Notas
-
-- Asegúrate de configurar las variables de entorno necesarias para la conexión a la base de datos en un archivo `.env`.
