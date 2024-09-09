@@ -12,7 +12,7 @@ Este proyecto proporciona la configuración necesaria para ejecutar el backend.
 
 1. Clonar el repositorio:
     ```bash
-    git clone <URL_DEL_REPOSITORIO>
+    git clone https://github.com/sebzcb/swifty-back
     ```
 
 2. Instalar las dependencias:
