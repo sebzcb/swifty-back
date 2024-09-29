@@ -106,9 +106,45 @@ ALTER FUNCTION public.get_tutoria_precio_mas_bajo(character varying)
 -- FUNCTION: public.obtener_promedio_calificacion(character varying)
 
 -- DROP FUNCTION IF EXISTS public.obtener_promedio_calificacion(character varying);
+-- verison antigua
+--CREATE OR REPLACE FUNCTION public.obtener_promedio_calificacion(
+--	p_id_tutor character varying)
+--    RETURNS double precision
+--    LANGUAGE 'plpgsql'
+--    COST 100
+--    VOLATILE PARALLEL UNSAFE
+--AS $BODY$
+--DECLARE
+--    promedio_calificacion FLOAT;
+--BEGIN
+--    SELECT AVG(calificacion) INTO promedio_calificacion
+--    FROM comentarios
+ --   WHERE id_tutor = p_id_tutor;
+
+ --   RETURN promedio_calificacion;
+--END; 
+--$BODY$;
+--ALTER FUNCTION public.obtener_promedio_calificacion(character varying)
+  --  OWNER TO postgres;
+-- version nueva
+
+
+-- FUNCTION: public.obtener_promedio_calificacion(character varying)
+
+-- DROP FUNCTION IF EXISTS public.obtener_promedio_calificacion(character varying);
+
+-- FUNCTION: public.obtener_promedio_calificacion(character varying)
+
+-- DROP FUNCTION IF EXISTS public.obtener_promedio_calificacion(character varying);
+
+-- FUNCTION: public.obtener_promedio_calificacion(character varying, boolean, double precision)
+
+-- DROP FUNCTION IF EXISTS public.obtener_promedio_calificacion(character varying, boolean, double precision);
 
 CREATE OR REPLACE FUNCTION public.obtener_promedio_calificacion(
-	p_id_tutor character varying)
+	p_id_tutor character varying,
+	aproximar boolean,
+	intervalo double precision)
     RETURNS double precision
     LANGUAGE 'plpgsql'
     COST 100
@@ -121,7 +157,31 @@ BEGIN
     FROM comentarios
     WHERE id_tutor = p_id_tutor;
 
+    IF aproximar THEN
+        promedio_calificacion := ROUND(promedio_calificacion / intervalo) * intervalo;
+    END IF;
+
     RETURN promedio_calificacion;
+END; 
+$BODY$;
+
+ALTER FUNCTION public.obtener_promedio_calificacion(character varying, boolean, double precision)
+    OWNER TO postgres;
+
+
+-- FUNCTION: public.obtener_promedio_calificacion(character varying)
+
+-- DROP FUNCTION IF EXISTS public.obtener_promedio_calificacion(character varying);
+
+CREATE OR REPLACE FUNCTION public.obtener_promedio_calificacion(
+	p_id_tutor character varying)
+    RETURNS double precision
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+AS $BODY$
+BEGIN
+    RETURN obtener_promedio_calificacion(p_id_tutor, false, 0.5);
 END; 
 $BODY$;
 
@@ -267,6 +327,10 @@ CREATE TABLE IF NOT EXISTS public.mensajes
     CONSTRAINT mensajes_pkey PRIMARY KEY (id)
 );
 
+-- Table: public.reportes
+
+-- DROP TABLE IF EXISTS public.reportes;
+
 CREATE TABLE IF NOT EXISTS public.reportes
 (
     id integer NOT NULL DEFAULT nextval('reportes_id_seq'::regclass),
@@ -274,6 +338,7 @@ CREATE TABLE IF NOT EXISTS public.reportes
     detalles character varying(500) COLLATE pg_catalog."default",
     id_reportado character varying(200) COLLATE pg_catalog."default",
     id_usuario_reporto character varying(200) COLLATE pg_catalog."default",
+    fecha_reporte timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT reportes_pkey PRIMARY KEY (id)
 );
 

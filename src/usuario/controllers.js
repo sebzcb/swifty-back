@@ -22,6 +22,7 @@ const buildOrderByQuery = (orderBy, direction) => {
   return orderByQuery.slice(0, -2);
 };
 const buildWhereQuery = (keyword, filters) => {
+  console.log("buildWhereQuery===========================================")
   let whereQuery = keyword ? `WHERE (u.nombre ILIKE '%${keyword}%')` : '';
   if (filters) {
       const filterConditions = [];
@@ -29,7 +30,9 @@ const buildWhereQuery = (keyword, filters) => {
           filterConditions.push(`uni.id IN (${filters.universidades.join(',')})`);
       }
       if (filters.valoraciones?.length) {
-          filterConditions.push(`obtener_promedio_calificacion(tu.id) IN (${filters.valoraciones.join(',')})`);
+        const valoraciones = filters.valoraciones;
+        console.log("valoraciones:",valoraciones)
+        filterConditions.push(`obtener_promedio_calificacion(tu.id,true,0.5) IN (${filters.valoraciones.join(',')})`);
       }
       if(filters.asignaturas?.length){
           const codigos_asignaturas = filters.asignaturas.map(id => `'${id}'`).join(',');
@@ -107,17 +110,17 @@ ${orderByQuery}
     } else if (order.menorPrecio) {
       query += ' ORDER BY t.precioporhora ASC';
     }*/
-    console.log("query count:", query);
+    //console.log("query count:", query);
       const dataCount = (await pool.query(query)).rows;
     const totalCount = dataCount[0]?.total_count || 0;
     query += ` LIMIT ${limit} OFFSET ${req.skip}`;
-    console.log("query:", query)
+   // console.log("query:", query)
     const data = (await pool.query(query)).rows;
     const itemCount = totalCount;
 
-    console.log("count:", totalCount);
+    //console.log("count:", totalCount);
     const pageCount = Math.ceil(totalCount / limit);
-    console.log("res:", data);
+    //console.log("res:", data);
     //return res.status(200).json(data);
 
     return res.status(200).send({

@@ -3,3 +3,12 @@ npx nodemon src/app.js
 gadi.r@mail.pucv.cl
 1234
 
+romina.h@mail.pucv.cl
+1234
+
+pepito123@gmail.com
+1234
+
+
+EL "calificar" aparece cuando el tutor le acepto la solicitud al  usuario respectivo por primera vez.
+Las asignaturas en los resultados de busqueda aparecen cuando el Tutor tiene creada una tutoria con X estudiante.
