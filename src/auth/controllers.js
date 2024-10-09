@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const pool = require('../config');
+const ROL = require('../constants/Rol');
 
 // const SECRET_KEY = process.env.JWT_SECRET_KEY ?? 'secretkey'; Variables de entorno
 const SECRET_KEY = 'secretkey';
@@ -94,7 +95,12 @@ async function iniciarSesion(req, res) {
       });
       return;
     }
-
+    let rolUsuario = ROL.ESTUDIANTE;
+    if (usuario.id_tutor) {
+      rolUsuario = ROL.TUTOR
+    }else if (usuario.id_administrador) {
+      rolUsuario = ROL.ADMINISTRADOR
+    }
     res.status(200).send({
       message: 'Inicio de sesión correcto',
       usuario: {
@@ -106,7 +112,7 @@ async function iniciarSesion(req, res) {
         genero: usuario.genero,
         telefono: usuario.telefono,
         descripcion: usuario.descripcion,
-        rol: usuario.id_tutor ? 'tutor' : 'estudiante'
+        rol: rolUsuario//usuario.id_tutor ? 'tutor' : 'estudiante'
       },
     });
   }

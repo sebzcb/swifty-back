@@ -48,3 +48,25 @@ $BODY$;
 
 ALTER FUNCTION public.obtener_promedio_calificacion(character varying)
     OWNER TO postgres;
+
+CREATE OR REPLACE FUNCTION public.get_tutorias_impartidas(
+    tutor_id character varying)
+    RETURNS TABLE(asignaturas_impartidas character varying) 
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+    ROWS 1000
+
+AS $BODY$
+BEGIN
+    RETURN QUERY 
+    SELECT 
+        CAST(string_agg(a.nombreasignatura || ' - $' || tu.precio::text || ' CLP', ', ') AS character varying) AS asignaturas_impartidas
+    FROM imparten tu
+    JOIN asignaturas a ON tu.codigo_asignatura = a.codigo AND tu.id_universidad = a.id_universidad
+    WHERE tu.id_tutor = tutor_id;
+END; 
+$BODY$;
+
+ALTER FUNCTION public.get_tutorias_impartidas(character varying)
+    OWNER TO postgres;

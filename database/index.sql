@@ -3,6 +3,28 @@
 BEGIN;
 
 -- FUNCIONES
+
+CREATE OR REPLACE FUNCTION public.get_tutorias_impartidas(
+    tutor_id character varying)
+    RETURNS TABLE(asignaturas_impartidas character varying) 
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+    ROWS 1000
+
+AS $BODY$
+BEGIN
+    RETURN QUERY 
+    SELECT 
+        CAST(string_agg(a.nombreasignatura || ' - $' || tu.precio::text || ' CLP', ', ') AS character varying) AS asignaturas_impartidas
+    FROM imparten tu
+    JOIN asignaturas a ON tu.codigo_asignatura = a.codigo AND tu.id_universidad = a.id_universidad
+    WHERE tu.id_tutor = tutor_id;
+END; 
+$BODY$;
+
+ALTER FUNCTION public.get_tutorias_impartidas(character varying)
+    OWNER TO postgres;
 -- FUNCTION: public.generar_id_grupos()
 
 -- DROP FUNCTION IF EXISTS public.generar_id_grupos();
@@ -584,4 +606,19 @@ ALTER SEQUENCE public.tutorias_id_seq
 
 ALTER SEQUENCE public.universidades_id_seq
     OWNED BY universidades.id;
+
+
+-- Crear la tabla intermedia 'imparten'
+CREATE TABLE imparten (
+    id_tutor VARCHAR(200),
+    codigo_asignatura VARCHAR(200),
+    id_universidad INTEGER,
+    PRIMARY KEY (id_tutor, codigo_asignatura, id_universidad),
+    FOREIGN KEY (id_tutor) REFERENCES tutores(id),
+    FOREIGN KEY (codigo_asignatura, id_universidad) REFERENCES asignaturas(codigo, id_universidad)
+);
+alter table imparten add column nombre_asignatura varchar(200);
+alter table tutorias add column clave varchar(200);
+
 END;
+

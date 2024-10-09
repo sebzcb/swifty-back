@@ -12,3 +12,55 @@ pepito123@gmail.com
 
 EL "calificar" aparece cuando el tutor le acepto la solicitud al  usuario respectivo por primera vez.
 Las asignaturas en los resultados de busqueda aparecen cuando el Tutor tiene creada una tutoria con X estudiante.
+-- tutores
+SELECT u.*, 
+       uni.nombre as universidad, 
+       t.precioporhora, 
+       t.horafinal, 
+       obtener_promedio_calificacion(tu.id) as valoracion_promedio,
+       a.asignaturas_impartidas, 
+       COUNT(*) OVER() as total_count
+    FROM usuarios u 
+    INNER JOIN tutores tu ON u.id_tutor = tu.id 
+    INNER JOIN universidades uni ON uni.id = u.id_universidad 
+    LEFT JOIN LATERAL get_tutoria_precio_mas_bajo(u.id_tutor) t ON TRUE 
+    LEFT JOIN LATERAL get_tutorias_impartidas(u.id_tutor) a ON TRUE 
+	
+	
+-- administradores
+
+  SELECT u.*, 
+       uni.nombre as universidad, 
+       t.precioporhora, 
+       t.horafinal, 
+       obtener_promedio_calificacion(tu.id) as valoracion_promedio,
+       a.asignaturas_impartidas, 
+       COUNT(*) OVER() as total_count
+    FROM usuarios u 
+    INNER JOIN administradores tu ON u.id_administrador = tu.id 
+    INNER JOIN universidades uni ON uni.id = u.id_universidad 
+    LEFT JOIN LATERAL get_tutoria_precio_mas_bajo(u.id_tutor) t ON TRUE 
+    LEFT JOIN LATERAL get_tutorias_impartidas(u.id_tutor) a ON TRUE 
+	
+	
+-- usuarios (ver todos)
+SELECT u.*, 
+       uni.nombre as universidad, 
+       t.precioporhora, 
+       t.horafinal, 
+      -- obtener_promedio_calificacion(tu.id) as valoracion_promedio,
+       a.asignaturas_impartidas, 
+       COUNT(*) OVER() as total_count
+    FROM usuarios u 
+   -- INNER JOIN tutores tu ON u.id_tutor = tu.id 
+    INNER JOIN universidades uni ON uni.id = u.id_universidad 
+    LEFT JOIN LATERAL get_tutoria_precio_mas_bajo(u.id_tutor) t ON TRUE 
+    LEFT JOIN LATERAL get_tutorias_impartidas(u.id_tutor) a ON TRUE 
+	
+	
+
+
+	select * from usuarios;
+	select * from administradores;
+	
+	delete from administradores 
