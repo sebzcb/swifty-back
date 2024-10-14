@@ -4,6 +4,8 @@ const { ORDER, DIRECTION } = require('../utils/sort');
 const { getClave } = require('../utils/getClave');
 const { getDay } = require('../utils/getDia');
 const ROL = require('../constants/Rol');
+const { getFutureWeeks } = require('../utils/getFutureWeeks');
+const { getWeekNumber } = require('../utils/getWeekNumber');
 /*
 Para saber las funciones que se han creado en la BD:
 SELECT proname
@@ -81,7 +83,7 @@ async function getUsuariosPorPalabraClave(req, res) {
     //    --INNER JOIN tutores tu ON u.id_tutor = tu.id
     const typeUserQuery = getTypeUserQuery(typeUser);
     console.log("typeUserQuery:", typeUserQuery);
-    const obtenerPromedioQuery = typeUser == ROL.ESTUDIANTE ?'obtener_promedio_calificacion(u.id) as valoracion_promedio,':'obtener_promedio_calificacion(tu.id) as valoracion_promedio,';
+    const obtenerPromedioQuery = typeUser == ROL.ESTUDIANTE ? 'obtener_promedio_calificacion(u.id) as valoracion_promedio,' : 'obtener_promedio_calificacion(tu.id) as valoracion_promedio,';
     console.log("obtenerPromedioQuery:", obtenerPromedioQuery);
     let query = `
     SELECT u.*, 
@@ -96,8 +98,8 @@ async function getUsuariosPorPalabraClave(req, res) {
     INNER JOIN universidades uni ON uni.id = u.id_universidad 
     LEFT JOIN LATERAL get_tutoria_precio_mas_bajo(u.id_tutor) t ON TRUE 
     LEFT JOIN LATERAL get_tutorias_impartidas(u.id_tutor) a ON TRUE 
-    ${whereQuery}
-    ${typeUser == ROL.ESTUDIANTE ? '':orderByQuery}
+    ${whereQuery} 
+    ${typeUser == ROL.ESTUDIANTE ? '' : orderByQuery}
     `
     console.log("query count:", query);
     const dataCount = (await pool.query(query)).rows;
@@ -221,6 +223,10 @@ async function uploadTutoria(req, res) {
     client.release(); // Release the client back to the pool
   }
 }*/
+
+/*
+Agregue nuevas columnas en mi tabla tutorias las cuales son: semana(integer) y anio (integer)
+*/
 async function uploadTutoria(req, res) {
   const client = await pool.connect();
   try {
@@ -228,30 +234,79 @@ async function uploadTutoria(req, res) {
     await client.query('BEGIN');
     const { horaInicio, horaFin, fecha, codigo_asignatura, descripcion, precioHora, modalidad, id_estudiante, id_tutor, maxEstudiantes } = req.body;
     await client.query('INSERT INTO tutorias (hora, horafinal, fecha, codigoasignatura, descripcion, precioporhora, modalidad, id_estudiante, id_tutor, cantidadmaximaestudiantes) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)', [horaInicio, horaFin, fecha, codigo_asignatura, descripcion, precioHora, modalidad, id_estudiante, id_tutor, maxEstudiantes]);
-
+    //PROCESO INSERTAR EN HORARIOS DISPONIBLES
+    //fecha formato: 2024-10-10
+    console.log("======================== subiur a horarios disponibles =========================");
+    console.log("FECHA SUBIR TUTORIA:", fecha);
     const clavesOcupadas = getClave(horaInicio, horaFin);
     const dia = getDay(fecha);
     const idUsuario = id_tutor;
     console.log("clavesOcupadas:", clavesOcupadas);
     console.log("dia:", dia);
-
-    // Verificar si alguna de las claves ya está ocupada
-    for (const clave of clavesOcupadas) {
-      const horarioOcupado = await client.query(
-        'SELECT * FROM horariosDisponibles WHERE id_usuario = $1 AND dia = $2 AND hora = $3',
-        [idUsuario, dia, clave]
-      );
-      if (horarioOcupado.rows.length > 0) {
-        await client.query('ROLLBACK'); // Rollback transaction
-        return res.status(409).json({ message: 'Error al subir la tutoría: El tutor ya tiene una tutoría en ese horario' });
+    //obtener futuras semanas de la fecha
+    const futureWeeks = getFutureWeeks(new Date(fecha), 4);
+    const weekUploadTutoria = getWeekNumber(new Date(fecha)); //semana de la tutoria a subir
+    const anioUploadTutoria = new Date(fecha).getFullYear(); //año de la tutoria a subir
+    console.log("weekUploadTutoria:", weekUploadTutoria, "anioUploadTutoria:", anioUploadTutoria);
+    //recorro las semanas futuras
+    for (const week of futureWeeks) {
+      console.log(weekUploadTutoria + "==" + week.week + "&&" + week.year + "==" + anioUploadTutoria);
+      const canCheck = weekUploadTutoria == week.week && week.year == anioUploadTutoria;
+      console.log("canCheck:", canCheck);
+      if (canCheck) {
+        // Verificar si alguna de las claves ya está ocupada en la semana y año
+        for (const clave of clavesOcupadas) {
+          const horarioOcupado = await client.query(
+            'SELECT * FROM horariosDisponibles WHERE id_usuario = $1 AND dia = $2 AND hora = $3 and semana = $4 and anio = $5',
+            [idUsuario, dia, clave, week.week, week.year]
+          );
+          if (horarioOcupado.rows.length > 0) {
+            await client.query('ROLLBACK'); // Rollback transaction
+            return res.status(409).json({ message: 'Error al subir la tutoría: El tutor ya tiene una tutoría en ese horario' });
+          }
+        }
       }
     }
-
-    // Insertar las nuevas claves ocupadas
-    for (const clave of clavesOcupadas) {
-      await client.query('INSERT INTO horariosDisponibles (id_usuario, dia, hora) VALUES ($1, $2, $3)', [idUsuario, dia, clave]);
+    for (const week of futureWeeks) {
+      console.log(weekUploadTutoria + "==" + week.week + "&&" + week.year + "==" + anioUploadTutoria);
+      const canCheck = weekUploadTutoria == week.week && week.year == anioUploadTutoria;
+      console.log("canCheck:", canCheck);
+      if (canCheck) {
+        // Verificar si alguna de las claves ya está ocupada en la semana y año
+        for (const clave of clavesOcupadas) {
+          console.log("insertando en horarios disponibles...");
+          await client.query('INSERT INTO horariosDisponibles (id_usuario, dia, hora, semana, anio) VALUES ($1, $2, $3, $4, $5)', [idUsuario, dia, clave, week.week, week.year]);    
+        }
+      }
     }
-
+    /*
+        // Insertar las nuevas claves ocupadas
+        console.log("insertando en horarios disponibles...");
+        await client.query('INSERT INTO horariosDisponibles (id_usuario, dia, hora, semana, anio) VALUES ($1, $2, $3, $4, $5)', [idUsuario, dia, clave, week.week, week.year]);
+        break;
+    */
+    // Verificar si alguna de las claves ya está ocupada
+    /* for (const clave of clavesOcupadas) {
+       const horarioOcupado = await client.query(
+         'SELECT * FROM horariosDisponibles WHERE id_usuario = $1 AND dia = $2 AND hora = $3',
+         [idUsuario, dia, clave]
+       );
+       if (horarioOcupado.rows.length > 0) {
+         await client.query('ROLLBACK'); // Rollback transaction
+         return res.status(409).json({ message: 'Error al subir la tutoría: El tutor ya tiene una tutoría en ese horario' });
+       }
+     }*/
+    /*    console.log("No hay horario ocupado");
+        console.log("insertando en horarios disponibles...");
+        // Insertar las nuevas claves ocupadas
+        for (const week of futureWeeks) {
+          if (weekUploadTutoria == week.week && week.year == anioUploadTutoria) {
+            for (const clave of clavesOcupadas) {
+              await client.query('INSERT INTO horariosDisponibles (id_usuario, dia, hora, semana, anio) VALUES ($1, $2, $3, $4, $5)', [idUsuario, dia, clave, week.week, week.year]);
+            }
+          }
+        }*/
+    console.log("==============================00 subiur a horarios disponibles fin =========================");
     await client.query('COMMIT'); // Commit transaction
     res.status(201).json({ message: 'Tutoría subida con éxito' });
   } catch (error) {
@@ -277,7 +332,15 @@ async function getSolicitudesEstudiantes(req, res) {
 async function getTutorias(req, res) {
   try {
     const { id_tutor } = req.body;
-    const tutorias = (await pool.query('SELECT t.*,a.nombreasignatura FROM tutorias t inner join asignaturas a on t.codigoasignatura = a.codigo WHERE id_tutor = $1', [id_tutor])).rows;
+    //const tutorias = (await pool.query('SELECT t.*,a.nombreasignatura FROM tutorias t inner join asignaturas a on t.codigoasignatura = a.codigo WHERE id_tutor = $1', [id_tutor])).rows;
+    const query = `
+    SELECT t.*,a.nombreasignatura,u.nombre as nombre_estudiante 
+    FROM tutorias t 
+    inner join asignaturas a on t.codigoasignatura = a.codigo 
+    inner join usuarios u on t.id_estudiante = u.id_estudiante 
+    WHERE t.id_tutor='${id_tutor}'`;
+    console.log(query)
+    const tutorias = (await pool.query(query)).rows;
     return res.status(200).json(tutorias);
   } catch (error) {
     console.error('Error al conseguir tutorias:', error);
@@ -329,16 +392,22 @@ async function deleteTutoria(req, res) {
     const tutoria = tutoriaDelete.rows[0];
     console.log("tutoria:", tutoria);
     const clavesOcupadas = getClave(tutoria.hora, tutoria.horafinal);
-    const dia = getDay(tutoria.fecha);
+    const fechaTutoriaEliminar = tutoria.fecha;
+    const dia = getDay(fechaTutoriaEliminar);
     const idUsuario = tutoria.id_tutor;
     console.log("clavesOcupadas:", clavesOcupadas);
     console.log("dia:", dia);
-
+    const weekDelete = getWeekNumber(new Date(fechaTutoriaEliminar));
+    const anioEliminar = new Date(fechaTutoriaEliminar).getFullYear();
+    if(isNaN(weekDelete) || isNaN(anioEliminar)){
+      await client.query('ROLLBACK'); // Rollback transaction
+      return res.status(409).json({ message: 'Error al eliminar la tutoría: No se pudo obtener la semana y año de la tutoría' });
+    }
     // Eliminar todas las claves ocupadas
     for (const clave of clavesOcupadas) {
       const result = await client.query(
-        'SELECT id FROM horariosDisponibles WHERE id_usuario = $1 AND dia = $2 AND hora = $3 LIMIT 1',
-        [idUsuario, dia, clave]
+        'SELECT id FROM horariosDisponibles WHERE id_usuario = $1 AND dia = $2 AND hora = $3 and semana = $4 and anio = $5 LIMIT 1',
+        [idUsuario, dia, clave, weekDelete, anioEliminar]
       );
       const idHorario = result.rows[0]?.id;
 
@@ -386,7 +455,7 @@ async function editarTutoria(req, res) {
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 }
-*/
+*//*
 async function editarTutoria(req, res) {
   const client = await pool.connect();
   try {
@@ -435,7 +504,63 @@ async function editarTutoria(req, res) {
     client.release(); // Release the client back to the pool
   }
 }
+*/
+async function editarTutoria(req, res) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const { id_tutoria, hora, horaFin, fecha, descripcion, modalidad, maxEstudiantes } = req.body;
+    const tutoriaEdit = await client.query('SELECT * FROM tutorias WHERE id = $1', [id_tutoria]);
+    const tutoria = tutoriaEdit.rows[0];
+    console.log("tutoria:", tutoria);
+    const clavesObtenidas = getClave(tutoria.hora, tutoria.horafinal);
+    const dia = getDay(tutoria.fecha);
+    const idUsuario = tutoria.id_tutor;
 
+    const clavesNuevas = getClave(hora, horaFin);
+    const diaNuevo = getDay(fecha);
+
+    // Obtener semana y año de la tutoría actual
+    const weekActual = getWeekNumber(new Date(tutoria.fecha));
+    const anioActual = new Date(tutoria.fecha).getFullYear();
+
+    // Obtener semana y año de la nueva fecha de la tutoría
+    const weekNueva = getWeekNumber(new Date(fecha));
+    const anioNuevo = new Date(fecha).getFullYear();
+
+    // Eliminar las claves ocupadas anteriores
+    for (const clave of clavesObtenidas) {
+      await client.query('DELETE FROM horariosDisponibles WHERE id_usuario = $1 AND dia = $2 AND hora = $3 AND semana = $4 AND anio = $5', [idUsuario, dia, clave, weekActual, anioActual]);
+    }
+
+    // Verificar si alguna de las nuevas claves ya está ocupada
+    for (const clave of clavesNuevas) {
+      const horarioOcupado = await client.query(
+        'SELECT * FROM horariosDisponibles WHERE id_usuario = $1 AND dia = $2 AND hora = $3 AND semana = $4 AND anio = $5',
+        [idUsuario, diaNuevo, clave, weekNueva, anioNuevo]
+      );
+      if (horarioOcupado.rows.length > 0) {
+        await client.query('ROLLBACK'); // Rollback transaction
+        return res.status(409).json({ message: 'Error al actualizar la tutoría: El tutor ya tiene una tutoría en ese horario' });
+      }
+    }
+
+    // Insertar las nuevas claves ocupadas
+    for (const clave of clavesNuevas) {
+      await client.query('INSERT INTO horariosDisponibles (id_usuario, dia, hora, semana, anio) VALUES ($1, $2, $3, $4, $5)', [idUsuario, diaNuevo, clave, weekNueva, anioNuevo]);
+    }
+
+    await client.query('UPDATE tutorias SET hora = $1, horafinal = $2, fecha = $3, descripcion = $4, modalidad = $5, cantidadmaximaestudiantes = $6 WHERE id = $7', [hora, horaFin, fecha, descripcion, modalidad, maxEstudiantes, id_tutoria]);
+    await client.query('COMMIT'); // Commit transaction
+    res.status(200).json({ message: 'Tutoría actualizada con éxito' });
+  } catch (error) {
+    console.error('Error al actualizar la tutoría:', error);
+    await client.query('ROLLBACK'); // Rollback transaction
+    res.status(500).json({ message: 'Error interno del servidor' });
+  } finally {
+    client.release(); // Release the client back to the pool
+  }
+}
 async function uploadSolicitud(req, res) {
   try {
     const { id_estudiante, id_tutor, descripcion, id_asignatura, modalidad, fecha, hora } = req.body;
@@ -495,4 +620,130 @@ async function updateUsuario(req, res) {
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 }
-module.exports = { getUsuario, getTutores, getUsuariosPorPalabraClave, solicitarTutoria, getSolicitudesTutorias, updateEstadoSolicitud, uploadTutoria, getSolicitudesEstudiantes, getTutorias, deleteTutoria, editarTutoria, uploadSolicitud, calificarTutor, getComentariosTutor, getComentarioTutorUsuario, updateUsuario };
+function getTypeUser(user) {
+  if (user.id_tutor) {
+    return ROL.TUTOR;
+  } else if (user.id_administrador) {
+    return ROL.ADMINISTRADOR;
+  } else if (user.id_estudiante) {
+    return ROL.ESTUDIANTE;
+  }
+}
+async function deleteTutorThings(client, id) {
+  await client.query('DELETE FROM imparten WHERE id_tutor = $1', [id]);
+  await client.query('DELETE FROM solicitudes WHERE id_tutor = $1', [id]);
+  await client.query('DELETE FROM comentarios WHERE id_tutor = $1', [id]);
+  await client.query('DELETE FROM horariosdisponibles WHERE id_usuario = $1', [id]);
+  await client.query('DELETE FROM tutorias WHERE id_tutor = $1', [id]);
+}
+//typeUser : estudiante, tutor, administrador
+async function deleteUsuario(req, res) {
+  const client = await pool.connect();
+  const { id } = req.params;
+
+  try {
+    await client.query('BEGIN'); // Start transaction
+    const userActual = (await client.query('SELECT * FROM usuarios WHERE id = $1', [id])).rows[0];
+    if (!userActual) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+    const typeUser = getTypeUser(userActual);
+    if (!typeUser) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+    console.log("typeUser:", typeUser);
+
+    // Eliminar comentarios y valoraciones
+    await client.query('DELETE FROM comentarios WHERE id_estudiante = $1', [id]);
+    // Eliminar solicitudes hechas de ese estudiante
+    await client.query('DELETE FROM solicitudes WHERE id_estudiante = $1', [id]);
+    // Eliminar tutorías impartidas a ese estudiante
+    await client.query('DELETE FROM tutorias WHERE id_estudiante = $1', [id]);
+    //TANTO estudiante, administrador y tutor estan en tabla estudiantes siempre
+    console.log("eliminando estudiante...");
+    //Actualizar la referencia de la clave foránea en la tabla usuarios 
+    await client.query('UPDATE usuarios SET id_estudiante = NULL, id_administrador = NULL, id_tutor = NULL WHERE id_estudiante = $1', [id]);
+    await client.query('DELETE FROM estudiantes WHERE id = $1', [id]);
+    console.log("eliminado estudiante");
+
+    if (typeUser == ROL.TUTOR) {
+      await deleteTutorThings(client, id);
+      /* await client.query('DELETE FROM imparten WHERE id_tutor = $1', [id]);
+       await client.query('DELETE FROM solicitudes WHERE id_tutor = $1', [id]);
+       await client.query('DELETE FROM comentarios WHERE id_tutor = $1', [id]);
+       await client.query('DELETE FROM horariosdisponibles WHERE id_usuario = $1', [id]);
+       await client.query('DELETE FROM tutorias WHERE id_tutor = $1', [id]);*/
+
+      console.log("eliminando tutor...");
+      await client.query('DELETE FROM tutores WHERE id = $1', [id]);
+      console.log("tutor eliminado");
+    } else if (typeUser == ROL.ADMINISTRADOR) {
+      console.log("eliminando administrador...");
+      await client.query('DELETE FROM administradores WHERE id = $1', [id]);
+      console.log("administrador eliminado");
+    }
+
+    console.log("eliminando usuario...");
+    await client.query('DELETE FROM usuarios WHERE id = $1', [id]);
+    console.log("usuario eliminado");
+
+    await client.query('COMMIT'); // Commit transaction
+    res.status(200).json({ message: 'Usuario eliminado con éxito' });
+  } catch (error) {
+    console.error('Error al eliminar el usuario:', error);
+    await client.query('ROLLBACK'); // Rollback transaction
+    res.status(500).json({ message: 'Error interno del servidor' });
+  } finally {
+    client.release(); // Release the client back to the pool
+  }
+}
+async function updateRolUsuario(req, res) {
+  const client = await pool.connect();
+  try {
+    client.query('BEGIN');
+    const { id, rol } = req.body;
+    const userEdit = (await client.query('SELECT * FROM usuarios WHERE id = $1', [id])).rows[0];
+    if (!userEdit) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+    const rolActual = getTypeUser(userEdit);
+    if (rolActual == rol) {
+      return res.status(409).json({ message: 'El usuario ya tiene ese rol' });
+    }
+    if (rolActual == ROL.ADMINISTRADOR) {
+      await client.query('UPDATE usuarios SET id_administrador = NULL WHERE id_estudiante = $1', [id]);
+      await client.query('DELETE FROM administradores WHERE id = $1', [id]);
+    } else if (rolActual == ROL.TUTOR) {
+      await client.query('UPDATE usuarios SET id_tutor = NULL WHERE id_estudiante = $1', [id]);
+      await client.query('DELETE FROM tutores WHERE id = $1', [id]);
+      //Eliminar todo lo relacionado con el tutor
+      await deleteTutorThings(client, id);
+    }
+    let query = '';
+    switch (rol) {
+      case ROL.TUTOR:
+        //inserta a tabla tutores
+        await client.query('INSERT INTO tutores (id) VALUES ($1)', [id]);
+        query = 'UPDATE usuarios SET id_tutor = $1 WHERE id = $1';
+        break;
+      case ROL.ADMINISTRADOR:
+        //inserta a tabla administradores
+        await client.query('INSERT INTO administradores (id) VALUES ($1)', [id]);
+        query = 'UPDATE usuarios SET id_administrador = $1 WHERE id = $1';
+        break;
+      default:
+        break;
+    }
+    await client.query(query, [id]);
+    client.query('COMMIT');
+    res.status(200).json({ message: 'Rol actualizado con éxito' });
+  } catch (error) {
+    client.query('ROLLBACK');
+    console.error('Error al actualizar el rol del usuario:', error);
+    res.status(500).json({ message: 'Error interno del servidor' });
+  } finally {
+    client.release();
+  }
+}
+
+module.exports = { getUsuario, getTutores, getUsuariosPorPalabraClave, solicitarTutoria, getSolicitudesTutorias, updateEstadoSolicitud, uploadTutoria, getSolicitudesEstudiantes, getTutorias, deleteTutoria, editarTutoria, uploadSolicitud, calificarTutor, getComentariosTutor, getComentarioTutorUsuario, updateUsuario, deleteUsuario, updateRolUsuario };

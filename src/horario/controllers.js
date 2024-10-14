@@ -1,9 +1,13 @@
 const pool = require('../config');
 
 const getHorario = async (req, res) => {
-    const { idUsuario } = req.params;
+    const { idUsuario, semana, anio  } = req.params;
+    console.log("idUsuario", idUsuario);
+    console.log("semana", semana);
+    console.log("anio", anio);
     try {
-        const horario = (await pool.query('SELECT * FROM horariosDisponibles where id_usuario = $1', [idUsuario])).rows;
+        const horario = (await pool.query('SELECT * FROM horariosDisponibles where id_usuario = $1 and semana = $2 and anio = $3', [idUsuario, semana, anio])).rows;
+        console.log("horario:", horario);
         res.status(200).json(horario);
     } catch (error) {
         console.error('Error al obtener el horario:', error);

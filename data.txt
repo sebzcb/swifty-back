@@ -64,3 +64,54 @@ SELECT u.*,
 	select * from administradores;
 	
 	delete from administradores 
+
+
+    	
+BEGIN;
+delete from comentarios where id_estudiante ='9a40bc1f';
+delete from solicitudes where id_estudiante ='9a40bc1f';
+delete from tutorias where id_estudiante ='9a40bc1f';
+-- Eliminar de la tabla estudiantes
+DELETE FROM estudiantes WHERE id = '9a40bc1f';
+-- Eliminar de la tabla usuarios
+DELETE FROM usuarios WHERE id = '9a40bc1f';
+COMMIT;
+
+select * from usuarios;
+
+BEGIN;
+delete from comentarios where id_estudiante ='9a40bc1f';
+delete from solicitudes where id_estudiante ='9a40bc1f';
+delete from tutorias where id_estudiante ='9a40bc1f';
+-- Eliminar de la tabla usuarios
+DELETE FROM usuarios WHERE id = '9a40bc1f';
+-- Eliminar de la tabla estudiantes
+DELETE FROM estudiantes WHERE id = '9a40bc1f';
+COMMIT;
+
+TODO:
+solucionar horarios disponibles en tutores (que detecte semanas tambien)
+
+
+
+
+BEGIN;
+delete from imparten where id_tutor ='256f77fd';
+delete from solicitudes where id_tutor ='256f77fd';
+delete from comentarios where id_tutor ='256f77fd';
+delete from horariosdisponibles where id_usuario ='256f77fd';
+delete from tutorias where id_tutor ='256f77fd';
+-- Actualizar la referencia de la clave foránea en la tabla usuarios
+UPDATE usuarios SET id_estudiante = NULL, id_administrador = NULL, id_tutor = NULL WHERE id_estudiante = '256f77fd';
+-- Eliminar de la tabla estudiantes
+DELETE FROM tutores WHERE id = '256f77fd';
+-- Eliminar de la tabla usuarios
+DELETE FROM usuarios WHERE id = '256f77fd';
+COMMIT;
+
+
+
+
+alter table horariosdisponibles
+add column semana integer,
+add column anio integer;

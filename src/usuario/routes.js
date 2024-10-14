@@ -19,5 +19,7 @@ usuarioRoutes.post('/calificar',usuarioControllers.calificarTutor);
 usuarioRoutes.post('/comentarios',usuarioControllers.getComentariosTutor);
 usuarioRoutes.post('/comentario',usuarioControllers.getComentarioTutorUsuario);
 // docRoutes.post('/documento', middlewares.authGuard, docControllers.addDocs);
-usuarioRoutes.put('/update',usuarioControllers.updateUsuario)
+usuarioRoutes.put('/update',usuarioControllers.updateUsuario);
+usuarioRoutes.delete('/delete/:id',usuarioControllers.deleteUsuario);
+usuarioRoutes.put('/update/rol',usuarioControllers.updateRolUsuario);
 module.exports = usuarioRoutes;

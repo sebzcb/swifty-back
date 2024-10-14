@@ -620,5 +620,10 @@ CREATE TABLE imparten (
 alter table imparten add column nombre_asignatura varchar(200);
 alter table tutorias add column clave varchar(200);
 
+
+alter table horariosdisponibles
+add column semana integer,
+add column anio integer;
+
 END;
 
