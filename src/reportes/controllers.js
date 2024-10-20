@@ -23,7 +23,7 @@ async function getReportes(req, res) {
     try {
         const { keyword, page, limit } = req.query;
         const whereQuery = buildWhereQuery(keyword);
-        let query =
+        /*let query =
             `
             SELECT 
             r.*, 
@@ -40,7 +40,8 @@ async function getReportes(req, res) {
             INNER JOIN usuarios u ON r.id_reportado = u.id
             INNER JOIN usuarios uu ON r.id_usuario_reporto = uu.id 
             ${whereQuery} 
-        `;
+        `;*/
+        let query ='select *,COUNT(*) OVER() as total_count from reportes';
         console.log("query count:", query);
         const dataCount = (await pool.query(query)).rows;
         const totalCount = dataCount[0]?.total_count || 0;

@@ -3,11 +3,11 @@ const { json } = require('express');
 const path = require('path');
 const cors = require('cors');
 const http = require('http');
-const socketIO = require('socket.io');
 const bodyParser = require("body-parser");
 const paginate = require("express-paginate");
 
 const route = require('./routes');
+const emailHelper = require('../emailHelper');
 
 const app = express();
 const port = 3030; //3020
@@ -23,6 +23,17 @@ app.all(function (req, res, next) {
   next();
 }); 
 app.use(route);
+// Routes
+app.post("/send-email", async (req, res) => {
+    const { to, subject, text } = req.body;
+    console.log("to:", to, "subject:", subject, "text:", text);
+    try {
+      let info = await emailHelper(to, subject, text);
+      res.status(200).send(`Email sent: ${info.response}`);
+    } catch (error) {
+      res.status(500).send("Error sending email");
+    }
+});
 // Servir archivos estáticos desde la carpeta 'public'
 app.use(express.static(path.join(__dirname, '../public')));
 
@@ -32,43 +43,6 @@ app.get('*', (req, res) => {
 });
 
 const server = http.createServer(app);
-/*
-const io = socketIO(server, {
-    cors: { 
-        origin: '*', // Especifica el origen de tu aplicación React en producción
-        methods: ["GET", "POST"],
-        // credentials: true // Si ne
-    },
-});
-
-io.on('connection', (socket) => {
-    console.log('Se ha conectado un cliente');
-
-    socket.on('abrir_todos_casilleros_cafeteria', ()=>{
-        io.emit('abrir_todos_casilleros');
-    
-    })
-
-    socket.on('abrir_casillero_espesifico_cafeteria', (casillero)=>{
-        io.emit('abrir_casillero_espesifico', casillero);
-    
-    })
-
-    socket.on('abrir_pedido_cafeta', (pedido) => {
-        // console.log('Se ha abierto un pedido cafeta');
-        console.log(pedido);
-        io.emit('abrir_pedido_casillero_cafeta', pedido);
-    });
-
-    socket.on('abrir_pedido_usuario', (pedido) => {
-        console.log('Se ha abierto un pedido usuario');
-        io.emit('abrir_pedido_casillero_usuario', pedido);
-    });
-
-    socket.on('disconnect', () => {
-        console.log('Se ha desconectado un cliente');
-    });
-});*/
 server.listen(port, () => {
     console.log(`Servidor escuchando en http://localhost:${port}`);
 });

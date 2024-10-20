@@ -134,7 +134,7 @@ async function getUsuariosPorPalabraClave(req, res) {
 async function getUsuario(req, res) {
   try {
     const { id } = req.params;
-    const usuario = (await pool.query('SELECT * FROM usuarios WHERE id = $1', [id])).rows[0];
+    const usuario = (await pool.query('select u.*,uni.nombre as universidad_nombre from usuarios u inner join universidades uni on u.id_universidad = uni.id where u.id = $1', [id])).rows[0];
     if (!usuario) {
       res.status(404).json({ message: 'Usuario no encontrado' });
       return;
@@ -238,7 +238,7 @@ async function uploadTutoria(req, res) {
     //fecha formato: 2024-10-10
     console.log("======================== subiur a horarios disponibles =========================");
     console.log("FECHA SUBIR TUTORIA:", fecha);
-    const clavesOcupadas = getClave(horaInicio, horaFin);
+    const clavesOcupadas = getClave(horaInicio, horaFin); //obtener claves a ocupar en base a la hora de inicio y finnal
     const dia = getDay(fecha);
     const idUsuario = id_tutor;
     console.log("clavesOcupadas:", clavesOcupadas);
@@ -630,11 +630,17 @@ function getTypeUser(user) {
   }
 }
 async function deleteTutorThings(client, id) {
+  console.log("empezando deleteTutorThings");
   await client.query('DELETE FROM imparten WHERE id_tutor = $1', [id]);
+  console.log("4...")
   await client.query('DELETE FROM solicitudes WHERE id_tutor = $1', [id]);
+  console.log("5...")
   await client.query('DELETE FROM comentarios WHERE id_tutor = $1', [id]);
+  console.log("6...")
   await client.query('DELETE FROM horariosdisponibles WHERE id_usuario = $1', [id]);
+  console.log("7...")
   await client.query('DELETE FROM tutorias WHERE id_tutor = $1', [id]);
+  console.log("fin deleteTutorThings");
 }
 //typeUser : estudiante, tutor, administrador
 async function deleteUsuario(req, res) {
@@ -714,10 +720,12 @@ async function updateRolUsuario(req, res) {
       await client.query('UPDATE usuarios SET id_administrador = NULL WHERE id_estudiante = $1', [id]);
       await client.query('DELETE FROM administradores WHERE id = $1', [id]);
     } else if (rolActual == ROL.TUTOR) {
+      console.log("1...")
       await client.query('UPDATE usuarios SET id_tutor = NULL WHERE id_estudiante = $1', [id]);
-      await client.query('DELETE FROM tutores WHERE id = $1', [id]);
       //Eliminar todo lo relacionado con el tutor
       await deleteTutorThings(client, id);
+      console.log("2...")
+      await client.query('DELETE FROM tutores WHERE id = $1', [id]);
     }
     let query = '';
     switch (rol) {
