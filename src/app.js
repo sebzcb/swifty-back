@@ -22,7 +22,10 @@ app.all(function (req, res, next) {
   }
   next();
 }); 
-app.use(route);
+
+// Prefijo 'api' para todas las rutas
+app.use('/api', route);
+/*
 // Routes
 app.post("/send-email", async (req, res) => {
     const { to, subject, text } = req.body;
@@ -33,12 +36,14 @@ app.post("/send-email", async (req, res) => {
     } catch (error) {
       res.status(500).send("Error sending email");
     }
-});
+});*/
+
 // Servir archivos estáticos desde la carpeta 'public'
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Ruta para servir index.html
+// Ruta para servir index.html (colocada al final para no interferir con las rutas API)
 app.get('*', (req, res) => {
+  console.log("Ruta no encontrada");
   res.sendFile(path.join(__dirname, '../public', 'index.html'));
 });
 

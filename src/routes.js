@@ -6,25 +6,30 @@ const asignaturasRoutes = require('./asignaturas/routes');
 const horarioRoutes = require('./horario/routes');
 const universidadesRoutes = require('./universidades/routes');
 const reportesRoutes = require('./reportes/routes');
+const emailHelper = require('../emailHelper');
 const router = express.Router();
 
-// router.use('/',authRoutes, productoRoutes, pedidoRoutes);
+// Rutas existentes
 router.use('/auth', authRoutes);
 router.use('/usuario', usuarioRoutes);
 router.use('/asignaturas', asignaturasRoutes);
 router.use('/horario', horarioRoutes);
-router.use('/universidades',universidadesRoutes)
+router.use('/universidades', universidadesRoutes);
 router.use('/reportes', reportesRoutes);
-//TEST
-//test 2
-// router.use('*', (req, res) => {
-//     const rutaSolicitada = req.path;
-//     console.log(req)
-//     res.status(404).json({
-//         error: 'Ruta no encontrada',
-//         message: `La ruta ${rutaSolicitada} solicitada no existe o no está disponible temporalmente`,
-//     });
-// });
 
-
+// Ruta para verificar el estado del servidor
+router.get('/status', (req, res) => {
+    res.status(200).json({ status: 'Server is running' });
+});
+// Routes
+router.post("/send-email", async (req, res) => {
+    const { to, subject, text } = req.body;
+    console.log("to:", to, "subject:", subject, "text:", text);
+    try {
+      let info = await emailHelper(to, subject, text);
+      res.status(200).send(`Email sent: ${info.response}`);
+    } catch (error) {
+      res.status(500).send("Error sending email");
+    }
+});
 module.exports = router;
