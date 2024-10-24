@@ -509,7 +509,7 @@ async function editarTutoria(req, res) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const { id_tutoria, hora, horaFin, fecha, descripcion, modalidad, maxEstudiantes } = req.body;
+    const { id_tutoria, hora, horaFin, fecha, descripcion, modalidad, maxEstudiantes,precioHora } = req.body;
     const tutoriaEdit = await client.query('SELECT * FROM tutorias WHERE id = $1', [id_tutoria]);
     const tutoria = tutoriaEdit.rows[0];
     console.log("tutoria:", tutoria);
@@ -550,7 +550,7 @@ async function editarTutoria(req, res) {
       await client.query('INSERT INTO horariosDisponibles (id_usuario, dia, hora, semana, anio) VALUES ($1, $2, $3, $4, $5)', [idUsuario, diaNuevo, clave, weekNueva, anioNuevo]);
     }
 
-    await client.query('UPDATE tutorias SET hora = $1, horafinal = $2, fecha = $3, descripcion = $4, modalidad = $5, cantidadmaximaestudiantes = $6 WHERE id = $7', [hora, horaFin, fecha, descripcion, modalidad, maxEstudiantes, id_tutoria]);
+    await client.query('UPDATE tutorias SET hora = $1, horafinal = $2, fecha = $3, descripcion = $4, modalidad = $5, cantidadmaximaestudiantes = $6, precioporhora=$7 WHERE id = $8', [hora, horaFin, fecha, descripcion, modalidad, maxEstudiantes,precioHora, id_tutoria]);
     await client.query('COMMIT'); // Commit transaction
     res.status(200).json({ message: 'Tutoría actualizada con éxito' });
   } catch (error) {
