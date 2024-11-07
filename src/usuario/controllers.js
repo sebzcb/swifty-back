@@ -6,6 +6,9 @@ const { getDay } = require('../utils/getDia');
 const ROL = require('../constants/Rol');
 const { getFutureWeeks } = require('../utils/getFutureWeeks');
 const { getWeekNumber } = require('../utils/getWeekNumber');
+const { generateRandomCode } = require('../utils/generateRandomCode');
+const bcrypt = require('bcrypt');
+const emailHelper = require('../../emailHelper');
 /*
 Para saber las funciones que se han creado en la BD:
 SELECT proname
@@ -134,6 +137,7 @@ async function getUsuariosPorPalabraClave(req, res) {
 async function getUsuario(req, res) {
   try {
     const { id } = req.params;
+    console.log("entro get usuario de id ", id);
     const usuario = (await pool.query('select u.*,uni.nombre as universidad_nombre from usuarios u inner join universidades uni on u.id_universidad = uni.id where u.id = $1', [id])).rows[0];
     if (!usuario) {
       res.status(404).json({ message: 'Usuario no encontrado' });
@@ -275,7 +279,7 @@ async function uploadTutoria(req, res) {
         // Verificar si alguna de las claves ya está ocupada en la semana y año
         for (const clave of clavesOcupadas) {
           console.log("insertando en horarios disponibles...");
-          await client.query('INSERT INTO horariosDisponibles (id_usuario, dia, hora, semana, anio) VALUES ($1, $2, $3, $4, $5)', [idUsuario, dia, clave, week.week, week.year]);    
+          await client.query('INSERT INTO horariosDisponibles (id_usuario, dia, hora, semana, anio) VALUES ($1, $2, $3, $4, $5)', [idUsuario, dia, clave, week.week, week.year]);
         }
       }
     }
@@ -399,7 +403,7 @@ async function deleteTutoria(req, res) {
     console.log("dia:", dia);
     const weekDelete = getWeekNumber(new Date(fechaTutoriaEliminar));
     const anioEliminar = new Date(fechaTutoriaEliminar).getFullYear();
-    if(isNaN(weekDelete) || isNaN(anioEliminar)){
+    if (isNaN(weekDelete) || isNaN(anioEliminar)) {
       await client.query('ROLLBACK'); // Rollback transaction
       return res.status(409).json({ message: 'Error al eliminar la tutoría: No se pudo obtener la semana y año de la tutoría' });
     }
@@ -509,7 +513,7 @@ async function editarTutoria(req, res) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const { id_tutoria, hora, horaFin, fecha, descripcion, modalidad, maxEstudiantes,precioHora } = req.body;
+    const { id_tutoria, hora, horaFin, fecha, descripcion, modalidad, maxEstudiantes, precioHora } = req.body;
     const tutoriaEdit = await client.query('SELECT * FROM tutorias WHERE id = $1', [id_tutoria]);
     const tutoria = tutoriaEdit.rows[0];
     console.log("tutoria:", tutoria);
@@ -550,7 +554,7 @@ async function editarTutoria(req, res) {
       await client.query('INSERT INTO horariosDisponibles (id_usuario, dia, hora, semana, anio) VALUES ($1, $2, $3, $4, $5)', [idUsuario, diaNuevo, clave, weekNueva, anioNuevo]);
     }
 
-    await client.query('UPDATE tutorias SET hora = $1, horafinal = $2, fecha = $3, descripcion = $4, modalidad = $5, cantidadmaximaestudiantes = $6, precioporhora=$7 WHERE id = $8', [hora, horaFin, fecha, descripcion, modalidad, maxEstudiantes,precioHora, id_tutoria]);
+    await client.query('UPDATE tutorias SET hora = $1, horafinal = $2, fecha = $3, descripcion = $4, modalidad = $5, cantidadmaximaestudiantes = $6, precioporhora=$7 WHERE id = $8', [hora, horaFin, fecha, descripcion, modalidad, maxEstudiantes, precioHora, id_tutoria]);
     await client.query('COMMIT'); // Commit transaction
     res.status(200).json({ message: 'Tutoría actualizada con éxito' });
   } catch (error) {
@@ -753,5 +757,109 @@ async function updateRolUsuario(req, res) {
     client.release();
   }
 }
-
-module.exports = { getUsuario, getTutores, getUsuariosPorPalabraClave, solicitarTutoria, getSolicitudesTutorias, updateEstadoSolicitud, uploadTutoria, getSolicitudesEstudiantes, getTutorias, deleteTutoria, editarTutoria, uploadSolicitud, calificarTutor, getComentariosTutor, getComentarioTutorUsuario, updateUsuario, deleteUsuario, updateRolUsuario };
+async function sendCodigoRecuperacion(req, res) {
+  try {
+    const { email } = req.body;
+    const userSelected = (await pool.query('SELECT * FROM usuarios WHERE correo = $1', [email])).rows[0];
+    if (!userSelected) {
+      console.log("Usuario no encontrado con el correo:", email);
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+    const codeGenerated = generateRandomCode();
+    //proceso de eliminar códigos anteriores de recuperación
+    await pool.query('DELETE FROM recuperacionescontrasena WHERE id_usuario = $1', [userSelected.id]);
+    //proceso de insertar en tabla recuperacionescontrasena
+    const query = 'INSERT INTO recuperacionescontrasena (email,codigo_recuperacion,id_usuario) VALUES ($1,$2,$3)';
+    await pool.query(query, [email, codeGenerated, userSelected.id]);
+    //enviar correo
+    const to = email;
+    const subject = 'Código de recuperación';
+    const text = `Su código de recuperación es: ${codeGenerated}, si no solicitó este código, ignore este mensaje.`;
+    await emailHelper(to, subject, text);
+    res.status(200).json({ message: 'Correo enviado con éxito' });
+  } catch (error) {
+    console.error('Error al enviar el correo de recuperación:', error);
+    res.status(500).json({ message: 'Error interno del servidor' });
+  }
+}
+async function sendEmailRecuperacion(req, res) {
+  try {
+    const { email } = req.body;
+    const userSelected = (await pool.query('SELECT * FROM recuperacionescontrasena WHERE email = $1', [email])).rows[0];
+    if (!userSelected) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+    const codeGenerated = userSelected.codigo_recuperacion;
+    //enviar correo
+    const to = email;
+    const subject = 'Código de recuperación';
+    const text = `Su código de recuperación es: ${codeGenerated}, si no solicitó este código, ignore este mensaje.`;
+    await emailHelper(to, subject, text);
+    res.status(200).json({ message: 'Correo recuperacion enviado con éxito' });
+  } catch (error) {
+    console.error('Error al enviar el correo de recuperación:', error);
+    res.status(500).json({ message: 'Error interno del servidor' });
+  }
+}
+async function checkCodigoRecuperacion(req, res) {
+  try {
+    const { email, codigoRecuperacion } = req.body;
+    console.log("verificando código de recuperación...");
+    const userSelected = (await pool.query('SELECT * FROM recuperacionescontrasena WHERE email = $1 and codigo_recuperacion = $2', [email, codigoRecuperacion])).rows[0];
+    if (!userSelected) {
+      return res.status(404).json({ message: 'Código de recuperación incorrecto' });
+    }
+    res.status(200).json({ message: 'Código de recuperación correcto' });
+  } catch (error) {
+    console.error('Error al verificar el código de recuperación:', error);
+    res.status(500).json({ message: 'Error interno del servidor' });
+  }
+}
+async function deleteCodigoRecuperacion(req, res) {
+  try {
+    const { email } = req.body;
+    await pool.query('DELETE FROM recuperacionescontrasena WHERE email = $1', [email]);
+    res.status(200).json({ message: 'Código de recuperación eliminado con éxito' });
+  } catch (error) {
+    console.error('Error al eliminar el código de recuperación:', error);
+    res.status(500).json({ message: 'Error interno del servidor' });
+  }
+}
+async function updatePassword(req, res) {
+  try {
+    const { email, password } = req.body;
+    console.log("actualizando contraseña...");
+    console.log("email:", email);
+    console.log("password:", password);
+    //const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hashSync(password, 10); //Se crea la contraseña de 10 caracteres
+    await pool.query('UPDATE usuarios SET contrasenia = $1 WHERE correo = $2', [hashedPassword, email]);
+    res.status(200).json({ message: 'Contraseña actualizada con éxito' });
+  } catch (error) {
+    console.error('Error al actualizar la contraseña:', error);
+    res.status(500).json({ message: 'Error interno del servidor' });
+  }
+}
+async function currentUser(req, res) {
+  try {
+    console.log("ENTRO CURRENT USER")
+    if (req.currentUser) {
+      const { id } = req.currentUser;
+      const user = (await pool.query('SELECT u.*, un.nombre as universidad FROM usuarios u JOIN universidades un ON u.id_universidad = un.id WHERE u.id = ($1)', [id])).rows[0];
+      let rolUsuario = ROL.ESTUDIANTE;
+      if (user.id_tutor) {
+        rolUsuario = ROL.TUTOR
+      } else if (user.id_administrador) {
+        rolUsuario = ROL.ADMINISTRADOR
+      }
+      //agregar campo rol
+      user.rol = rolUsuario;
+      return res.send({ currentUser: user });
+    } else {
+      return res.send({ currentUser: null });
+    }
+  } catch (error) {
+    console.log(error);
+  }
+};
+module.exports = { getUsuario, getTutores, getUsuariosPorPalabraClave, solicitarTutoria, getSolicitudesTutorias, updateEstadoSolicitud, uploadTutoria, getSolicitudesEstudiantes, getTutorias, deleteTutoria, editarTutoria, uploadSolicitud, calificarTutor, getComentariosTutor, getComentarioTutorUsuario, updateUsuario, deleteUsuario, updateRolUsuario, sendCodigoRecuperacion, sendEmailRecuperacion, checkCodigoRecuperacion, deleteCodigoRecuperacion, updatePassword, currentUser };

@@ -1,9 +1,10 @@
 const express = require('express');
 
 const usuarioControllers = require('./controllers');
+const { middlewareCurrentUser } = require('../../middlewares/currentUser');
 
 const usuarioRoutes = express.Router();
-
+usuarioRoutes.get('/current-user', middlewareCurrentUser, usuarioControllers.currentUser);
 usuarioRoutes.get('/:id', usuarioControllers.getUsuario);
 usuarioRoutes.get('/lista/tutores', usuarioControllers.getTutores);
 usuarioRoutes.post('/lista/usuarios', usuarioControllers.getUsuariosPorPalabraClave);
@@ -22,4 +23,9 @@ usuarioRoutes.post('/comentario',usuarioControllers.getComentarioTutorUsuario);
 usuarioRoutes.put('/update',usuarioControllers.updateUsuario);
 usuarioRoutes.delete('/delete/:id',usuarioControllers.deleteUsuario);
 usuarioRoutes.put('/update/rol',usuarioControllers.updateRolUsuario);
+usuarioRoutes.put('/update/password',usuarioControllers.updatePassword);
+usuarioRoutes.post('/sendcodigorecuperacion',usuarioControllers.sendCodigoRecuperacion);
+usuarioRoutes.post('/sendemailrecuperacion',usuarioControllers.sendEmailRecuperacion);
+usuarioRoutes.post('/verificarcodigo',usuarioControllers.checkCodigoRecuperacion);
+usuarioRoutes.post('/deletecodigorecuperacion',usuarioControllers.deleteCodigoRecuperacion);
 module.exports = usuarioRoutes;
