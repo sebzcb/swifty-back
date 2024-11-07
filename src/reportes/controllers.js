@@ -13,35 +13,38 @@ async function uploadReporte(req, res) {
         res.status(500).json({ message: 'Error interno del servidor' });
     }
 }
-const buildWhereQuery = (keyword, filters) => {
+const buildWhereQuery = (keyword, states) => {
     console.log("buildWhereQuery===========================================")
-    let whereQuery = keyword ? `WHERE (u.nombre ILIKE '%${keyword}%' or uu.nombre ILIKE '%${keyword}%')` : '';
+    //let whereQuery = keyword ? `WHERE (u.nombre ILIKE '%${keyword}%' or uu.nombre ILIKE '%${keyword}%')` : '';
+    let whereQuery="";
+    if (states) {
+        whereQuery += ' WHERE ';
+        //Separar states por ","
+        let statesArray = states.split(",");
+        //Si hay un keyword, se agrega un AND
+       /* if (keyword) {
+            whereQuery += ' AND ';
+        } else {
+            whereQuery += ' WHERE ';
+        }*/
+        //Se agrega el filtro de estados
+        whereQuery += '(';
+        statesArray.forEach((state, index) => {
+            whereQuery += `estado = '${state}'`;
+            if (index < statesArray.length - 1) {
+                whereQuery += ' OR ';
+            }
+        });
+        whereQuery += ')';
+    }
     return whereQuery;
 };
 //Tiene que conseguir los reportes con Paginacion.
 async function getReportes(req, res) {
     try {
-        const { keyword, page, limit } = req.query;
-        const whereQuery = buildWhereQuery(keyword);
-        /*let query =
-            `
-            SELECT 
-            r.*, 
-            u.nombre AS nombre_reportado, 
-            u.id_tutor AS id_tutor_reportado, 
-            u.id_estudiante AS id_estudiante_reportado, 
-            u.id_administrador AS id_administrador_reportado, 
-            uu.nombre AS nombre_reporto, 
-            uu.id_tutor AS id_tutor_reporto, 
-            uu.id_estudiante AS id_estudiante_reporto, 
-            uu.id_administrador AS id_administrador_reporto,
-            COUNT(*) OVER() as total_count 
-            FROM reportes r
-            INNER JOIN usuarios u ON r.id_reportado = u.id
-            INNER JOIN usuarios uu ON r.id_usuario_reporto = uu.id 
-            ${whereQuery} 
-        `;*/
-        let query ='select *,COUNT(*) OVER() as total_count from reportes';
+        const { keyword, page, limit,states } = req.query;
+        const whereQuery = buildWhereQuery(keyword,states);
+        let query ='select *,COUNT(*) OVER() as total_count from reportes '+whereQuery;
         console.log("query count:", query);
         const dataCount = (await pool.query(query)).rows;
         const totalCount = dataCount[0]?.total_count || 0;
@@ -64,4 +67,15 @@ async function getReportes(req, res) {
         res.status(500).json({ message: 'Error interno del servidor' });
     }
 }
-module.exports = { uploadReporte, getReportes };
+async function editReporte(req,res){
+    try{
+        const {id,estado}=req.body;
+        const query = `UPDATE reportes SET estado = '${estado}' WHERE id = ${id}`;
+        const data = (await pool.query(query)).rows;
+        return res.status(200).json(data);
+    }catch(error){
+        console.error('Error al obtener el reporte:', error);
+        res.status(500).json({ message: 'Error interno del servidor' });
+    }
+}
+module.exports = { uploadReporte, getReportes ,editReporte};

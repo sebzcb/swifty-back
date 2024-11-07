@@ -625,5 +625,16 @@ alter table horariosdisponibles
 add column semana integer,
 add column anio integer;
 
+CREATE TABLE IF NOT EXISTS public.recuperacionescontrasena (
+    email VARCHAR(200) PRIMARY KEY,
+    codigo_recuperacion VARCHAR(100) NOT NULL,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    id_usuario VARCHAR(200),
+    CONSTRAINT fk_usuario FOREIGN KEY (id_usuario) REFERENCES public.usuarios(id)
+);
+
+ALTER TABLE reportes
+ADD COLUMN estado VARCHAR(100) DEFAULT 'pendiente';
+
 END;
 

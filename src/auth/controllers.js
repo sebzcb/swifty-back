@@ -66,9 +66,26 @@ async function crearCuenta(req, res) {
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 }
-
-
-
+/*
+GENERANDO JWT Y SESION
+sess: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjJlY2Y3OTQ4IiwiZXhwaXJhdGlvblRpbWUiOjE3MzEwMTAxNzExMDgsImVtYWlsIjoibnVldm9udWV2b0BnbWFpbC5jb20iLCJpZF91c2VyIjoiMmVjZjc5NDgiLCJpYXQiOjE3MzA5MjM3NzF9.1j_kdhocy6MDytDDeciU_0YRypC1if-r8Jl-93hkefo
+*/
+function generateJwtAndSetSession(user, req) {
+  console.log("GENERANDO JWT Y SESION")
+  const userJwt = jwt.sign(
+      {
+          id: user.id,
+          expirationTime: Date.now() + 86400000,
+          email: user.correo,
+          id_user: user.id,
+      },
+      process.env.JWT_KEY
+  );
+  req.session = {
+      jwt: userJwt,
+  };
+  console.log("sess:", req.session.jwt);
+};
 async function iniciarSesion(req, res) {
   try{
     const { correo, contrasenia } = req.body;
@@ -101,12 +118,13 @@ async function iniciarSesion(req, res) {
     }else if (usuario.id_administrador) {
       rolUsuario = ROL.ADMINISTRADOR
     }
-    res.status(200).send({
+    generateJwtAndSetSession(usuario, req);
+    /*res.status(200).send({
       message: 'Inicio de sesión correcto',
       usuario: {
-        id: usuario.id,
-        nombre: usuario.nombre,
-        correo: usuario.correo,
+        id: usuario.id, //
+        nombre: usuario.nombre,//
+        correo: usuario.correo,//
         universidad: 'PUCV',
         fechaNacimiento: usuario.fechanacimiento,
         genero: usuario.genero,
@@ -114,12 +132,17 @@ async function iniciarSesion(req, res) {
         descripcion: usuario.descripcion,
         rol: rolUsuario//usuario.id_tutor ? 'tutor' : 'estudiante'
       },
-    });
+    });*/
+    return res.status(200).send();
   }
   catch (error) {
     console.error('Error al Iniciar secion:', error);
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 }
-
-module.exports = { crearCuenta, iniciarSesion };
+async function logout(req, res) {
+  console.log("LOGOUT")
+  req.session = null;
+  res.send({});
+}
+module.exports = { crearCuenta, iniciarSesion,logout };
