@@ -7,8 +7,14 @@ const ROL = require('../constants/Rol');
 const { getFutureWeeks } = require('../utils/getFutureWeeks');
 const { getWeekNumber } = require('../utils/getWeekNumber');
 const { generateRandomCode } = require('../utils/generateRandomCode');
+const dayjs = require('dayjs');
+const utc = require('dayjs/plugin/utc');
+const timezone = require('dayjs/plugin/timezone');
 const bcrypt = require('bcrypt');
 const emailHelper = require('../../emailHelper');
+// Configurar dayjs con los plugins
+dayjs.extend(utc);
+dayjs.extend(timezone);
 /*
 Para saber las funciones que se han creado en la BD:
 SELECT proname
@@ -173,13 +179,38 @@ async function solicitarTutoria(req, res) {
   }
 }
 //usuario/solicitudes
-async function getSolicitudesTutorias(req, res) {
+/*async function getSolicitudesTutorias(req, res) {
   try {
     const { id_tutor } = req.body;
     console.log("id_tutor", id_tutor)
     const solicitudes = (await pool.query(
       "SELECT s.*,u.nombre as nombre_estudiante,a.nombreasignatura FROM solicitudes s inner join usuarios u on u.id_estudiante = s.id_estudiante inner join asignaturas a on s.id_asignatura = a.codigo where s.id_tutor = $1 and s.estado = 'Pendiente' ", [id_tutor])).rows;
-    res.status(200).json(solicitudes);
+    console.log("solicitudes:", solicitudes);
+      res.status(200).json(solicitudes);
+  } catch (error) {
+    console.error('Error al obtener las solicitudes:', error);
+    res.status(500).json({ message: 'Error interno del servidor' });
+  }
+}
+*/
+async function getSolicitudesTutorias(req, res) {
+  try {
+    const { id_tutor } = req.body;
+    console.log("id_tutor", id_tutor);
+    const solicitudes = (await pool.query(
+      "SELECT s.*, u.nombre as nombre_estudiante,u.correo, a.nombreasignatura FROM solicitudes s INNER JOIN usuarios u ON u.id_estudiante = s.id_estudiante INNER JOIN asignaturas a ON s.id_asignatura = a.codigo WHERE s.id_tutor = $1 AND s.estado = 'Pendiente'", [id_tutor])).rows;
+
+    // Convertir las fechas y horas a la zona horaria local de Chile
+    const solicitudesConvertidas = solicitudes.map(solicitud => {
+      return {
+        ...solicitud,
+        hora: dayjs(solicitud.hora).tz('America/Santiago').format('HH:mm:ss'),
+        fecha: dayjs(solicitud.fecha).tz('America/Santiago').format('YYYY-MM-DD')
+      };
+    });
+
+    console.log("solicitudes:", solicitudesConvertidas);
+    res.status(200).json(solicitudesConvertidas);
   } catch (error) {
     console.error('Error al obtener las solicitudes:', error);
     res.status(500).json({ message: 'Error interno del servidor' });

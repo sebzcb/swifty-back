@@ -618,8 +618,7 @@ CREATE TABLE imparten (
     FOREIGN KEY (codigo_asignatura, id_universidad) REFERENCES asignaturas(codigo, id_universidad)
 );
 alter table imparten add column nombre_asignatura varchar(200);
-alter table tutorias add column clave varchar(200);
-
+alter table imparten add column precio integer;
 
 alter table horariosdisponibles
 add column semana integer,
