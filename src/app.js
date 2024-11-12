@@ -10,12 +10,15 @@ const cookieSession = require("cookie-session");
 const route = require('./routes');
 
 const app = express();
-const port = 3030; //3020
+const dotenv = require("dotenv");
+dotenv.config();
+
+const port = process.env.port || 3030;
 app.use(json());
 app.use(bodyParser.urlencoded({ extended: false }));
 let corsOrigin = process.env.ORIGIN === 'true' ? true : process.env.ORIGIN;
 app.use(cors({
-  origin:corsOrigin,
+  origin: corsOrigin,
   credentials: true
 }));
 app.use(
@@ -38,18 +41,6 @@ app.all(function (req, res, next) {
 
 // Prefijo 'api' para todas las rutas
 app.use('/api', route);
-/*
-// Routes
-app.post("/send-email", async (req, res) => {
-    const { to, subject, text } = req.body;
-    console.log("to:", to, "subject:", subject, "text:", text);
-    try {
-      let info = await emailHelper(to, subject, text);
-      res.status(200).send(`Email sent: ${info.response}`);
-    } catch (error) {
-      res.status(500).send("Error sending email");
-    }
-});*/
 
 // Servir archivos estáticos desde la carpeta 'public'
 app.use(express.static(path.join(__dirname, '../public')));

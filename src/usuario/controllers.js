@@ -149,6 +149,12 @@ async function getUsuario(req, res) {
       res.status(404).json({ message: 'Usuario no encontrado' });
       return;
     }
+    console.log("Get usuario:", usuario);
+    if(usuario.id_tutor){
+      //obtener nombrediscord
+      const discord = (await pool.query('select nombrediscord from tutores where id = $1', [usuario.id_tutor])).rows[0];
+      usuario.nombrediscord = discord.nombrediscord;
+    }
     res.status(200).json(usuario);
   } catch (error) {
     console.error('Error al obtener el usuario:', error);
@@ -646,13 +652,22 @@ async function getComentarioTutorUsuario(req, res) {
   }
 }
 async function updateUsuario(req, res) {
-  const { id, descripcion, telefono, genero } = req.body;
+  const { id, descripcion, telefono, genero, fechanacimiento,nombrediscord } = req.body;
+  const client = await pool.connect();
   try {
-    await pool.query('UPDATE usuarios SET descripcion = $1, telefono = $2, genero = $3 WHERE id = $4', [descripcion, telefono, genero, id]);
+    await client.query('BEGIN'); // Start transaction
+    await client.query('UPDATE usuarios SET descripcion = $1, telefono = $2, genero = $3, fechanacimiento = $4 WHERE id = $5', [descripcion, telefono, genero,fechanacimiento, id]);
+    if(nombrediscord || nombrediscord === ""){
+      await client.query('UPDATE tutores set nombrediscord = $1 where id = $2', [nombrediscord, id]);
+    }
+    await client.query('COMMIT'); // Commit transaction
     res.status(200).json({ message: 'Usuario actualizado con éxito' });
   } catch (error) {
+    await client.query('ROLLBACK'); // Rollback transaction
     console.error('Error al actualizar el usuario:', error);
     res.status(500).json({ message: 'Error interno del servidor' });
+  }finally{
+    client.release(); // Release the client back to the pool
   }
 }
 function getTypeUser(user) {
