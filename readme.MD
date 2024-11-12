@@ -43,8 +43,6 @@ Swifty se está desarrollando como respuesta a los desafíos de aprobar una asig
 - **RNF-06**: El sistema debe implementar un diseño responsivo que asegure una experiencia de usuario óptima en dispositivos móviles y de escritorio.
 - **RNF-07**: El sistema debe tener entornos separados para desarrollo y producción, cada uno con su propio repositorio de código (frontend y backend).
 
-
-
 ## Pasos para ejecutar el proyecto
 
 1. Clonar el repositorio:
@@ -57,15 +55,36 @@ Swifty se está desarrollando como respuesta a los desafíos de aprobar una asig
     npm install
     ```
 
-3. Configurar las variables de entorno:
-    - Crear un archivo `.env` en la raíz del proyecto copiando los datos del .env.development y configura:
+3. Configurar la base de datos:
+    - Crear una base de datos PostgreSQL
+    - Acceder a la carpeta `database` y copiar el contenido de `index.sql` en la base de datos creada.
+    - Copiar y Pegar los datos de `data.sql` en la base de datos para que funcione correctamente.
+
+4. Configurar las variables de entorno:
+    - Crear un archivo `.env` en la raíz del proyecto copiando los datos del `.env.development` y configura:
         ```env
         DB_USER="postgres" # Tu usuario de la base de datos
         DB_NAME="" # Tu Nombre de la base de datos
         DB_PASS="" # Tu Contraseña para conectarse la base de datos
         ```
-
-4. Ejecutar el servidor:
+5. Ejecutar el servidor:
     ```bash
     npm run start
     ```
+
+## Usuarios de prueba
+
+### Administrador
+- **Correo**: swifty.info.cl@gmail.com
+- **Contraseña**: A1234567
+
+### Tutor
+- **Correo**: tutor@gmail.com
+- **Contraseña**: A1234567
+
+### Estudiante
+- **Correo**: estudiante@gmail.com
+- **Contraseña**: A1234567
+
+### Recomendación
+Para los usuarios tutor y estudiante, recomendamos usar dos correos electrónicos diferentes para que te lleguen las notificaciones al correo.
