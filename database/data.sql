@@ -31,6 +31,10 @@ UPDATE usuarios SET id_estudiante = '8f067e4e' WHERE correo = 'tutor@gmail.com';
 INSERT INTO tutores (id) VALUES('8f067e4e');
 UPDATE usuarios SET id_tutor = '8f067e4e' WHERE correo = 'tutor@gmail.com';
 
+INSERT INTO imparten(codigo_asignatura, id_universidad, id_tutor, precio,nombre_asignatura)
+VALUES ('INF3340', 1, '8f067e4e', 5000,'Redes');
+INSERT INTO imparten(codigo_asignatura, id_universidad, id_tutor, precio,nombre_asignatura)
+VALUES ('ING9003', 1, '8f067e4e', 10000,'Ingles 3');
 --ESTUDIANTE
 INSERT INTO usuarios (id, nombre, correo, contrasenia,fechanacimiento,genero,telefono,descripcion,id_universidad) VALUES 
 ('b362239e','estudiante','estudiante@gmail.com','$2b$10$igHIicqoBbaQwThtCzoWFuYHjPkyHbEOPr.XXdVPpmw1jJIm4rMmq','','No especificado','No especificado','',1);
