@@ -49,25 +49,29 @@ Swifty se está desarrollando como respuesta a los desafíos de aprobar una asig
     ```bash
     git clone https://github.com/sebzcb/swifty-back
     ```
+2. Acceder al proyecto:
+    ```bash
+    cd swifty-back
+    ```
 
-2. Instalar las dependencias:
+3. Instalar las dependencias:
     ```bash
     npm install
     ```
 
-3. Configurar la base de datos:
+4. Configurar la base de datos:
     - Crear una base de datos PostgreSQL
     - Luego acceder a la carpeta `database` del proyecto, copiar y pegar el contenido de `index.sql` en la base de datos creada anteriormente.
     - Finalmente copiar y Pegar los datos de `data.sql` en la base de datos para inicializar los datos y crear los usuarios de prueba.
 
-4. Configurar las variables de entorno:
+5. Configurar las variables de entorno:
     - Crear un archivo `.env` en la raíz del proyecto copiando los datos del `.env.development` y configura:
         ```env
         DB_USER="postgres" # Tu usuario de la base de datos
         DB_NAME="" # Tu Nombre de la base de datos creada
         DB_PASS="" # Tu Contraseña para conectarse la base de datos postgreSQL
         ```
-5. Ejecutar el servidor:
+6. Ejecutar el servidor:
     ```bash
     npm run start
     ```
