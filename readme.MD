@@ -57,15 +57,15 @@ Swifty se está desarrollando como respuesta a los desafíos de aprobar una asig
 
 3. Configurar la base de datos:
     - Crear una base de datos PostgreSQL
-    - Acceder a la carpeta `database` y copiar el contenido de `index.sql` en la base de datos creada.
-    - Copiar y Pegar los datos de `data.sql` en la base de datos para que funcione correctamente.
+    - Luego acceder a la carpeta `database` del proyecto, copiar y pegar el contenido de `index.sql` en la base de datos creada anteriormente.
+    - Finalmente copiar y Pegar los datos de `data.sql` en la base de datos para inicializar los datos y crear los usuarios de prueba.
 
 4. Configurar las variables de entorno:
     - Crear un archivo `.env` en la raíz del proyecto copiando los datos del `.env.development` y configura:
         ```env
         DB_USER="postgres" # Tu usuario de la base de datos
-        DB_NAME="" # Tu Nombre de la base de datos
-        DB_PASS="" # Tu Contraseña para conectarse la base de datos
+        DB_NAME="" # Tu Nombre de la base de datos creada
+        DB_PASS="" # Tu Contraseña para conectarse la base de datos postgreSQL
         ```
 5. Ejecutar el servidor:
     ```bash
@@ -87,4 +87,4 @@ Swifty se está desarrollando como respuesta a los desafíos de aprobar una asig
 - **Contraseña**: A1234567
 
 ### Recomendación
-Para los usuarios tutor y estudiante, recomendamos usar dos correos electrónicos diferentes para que te lleguen las notificaciones al correo.
+Para los usuarios tutor y estudiante, recomendamos usar dos correos electrónicos diferentes propios para verificar que te lleguen las notificaciones al correo.
