@@ -1,4 +1,5 @@
 const pool = require('../config');
+const { CLAVES } = require('../utils/claves');
 
 const getHorario = async (req, res) => {
     const { idUsuario, semana, anio  } = req.params;
@@ -38,5 +39,13 @@ const updateHorario = async (req, res) => {
         client.release(); // Release the client back to the pool
     }
 }
-
-module.exports = { getHorario, updateHorario };
+const getClaves = async (req, res) => {
+    try{
+        const claves =CLAVES;
+        res.status(200).json(claves);
+    } catch (error) {
+        console.error('Error al obtener las claves:', error);
+        res.status(500).json({ message: 'Error interno del servidor' });
+    }
+}
+module.exports = { getHorario, updateHorario,getClaves };
